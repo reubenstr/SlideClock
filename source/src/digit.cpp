@@ -2,6 +2,10 @@
 #include "Digit.h"
 #include <Arduino.h>
 
+
+
+
+
 // Digit::Digit() {}
 
 Digit::Digit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom)
@@ -27,6 +31,21 @@ void Digit::SetDigitValue(int value)
 {
     targetDigit = value;
 }
+
+int Digit::GetDigitValue()
+{
+    return currentDigit;
+}
+
+// Home digit (run motor until limit is sensed).
+// Must be called before digits can be selected (moved into position).
+void Digit::Home()
+{
+    homed = true;
+
+
+}
+
 
 // Updates digit movement, must be called continuously.
 void Digit::Tick()

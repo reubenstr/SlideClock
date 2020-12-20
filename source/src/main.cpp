@@ -1,3 +1,5 @@
+// WORK IN PROGRESS.
+
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
@@ -92,32 +94,30 @@ void setup()
 
   pinMode(PIN_LED_BUILTIN, OUTPUT);
 
-  /*
-  pinMode(PIN_MOTOR_0_A, OUTPUT);
-  pinMode(PIN_MOTOR_0_B, OUTPUT);
-  pinMode(PIN_MOTOR_1_A, OUTPUT);
-  pinMode(PIN_MOTOR_1_B, OUTPUT);
-  pinMode(PIN_MOTOR_2_A, OUTPUT);
-  pinMode(PIN_MOTOR_2_B, OUTPUT);
-  pinMode(PIN_MOTOR_3_A, OUTPUT);
-  pinMode(PIN_MOTOR_3_B, OUTPUT);
-
-  pinMode(PIN_LIMIT_0_TOP, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_0_BOTTOM, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_1_TOP, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_1_BOTTOM, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_2_TOP, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_2_BOTTOM, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_3_TOP, INPUT_PULLUP);
-  pinMode(PIN_LIMIT_3_BOTTOM, INPUT_PULLUP);
-*/
-
   strip.begin();
   strip.show();
 
+  // Set calibration values for each digit.
+  // Activate home for each digit.
   for (int i = 0; i < numDigits; i++)
   {
     digits[i].SetTimeBetweenDigits(1000);
+    digits[i].Home();
+  }
+
+  // Wait until all digits are homed.
+  bool allHomedFlag = false;
+  while (allHomedFlag != true)
+  {
+    allHomedFlag = true;
+    for (int i = 0; i < numDigits; i++)
+    {
+      digits[i].Tick();
+      if (digits[i].GetDigitValue() == -1) 
+      {
+        allHomedFlag = false;
+      }
+    }
   }
 
   /*
