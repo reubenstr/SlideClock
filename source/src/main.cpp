@@ -4,7 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #include <WiFi.h>
-#include "Digit.h"
+#include "Digits.h"
 
 const char *ssid = "RedSky";
 const char *password = "happyredcat";
@@ -13,25 +13,25 @@ const char *streamId = "....................";
 const char *privateKey = "....................";
 
 #define PIN_LED_BUILTIN 2
-#define PIN_LED_STRIP 23
+#define PIN_LED_STRIP 5
 
 #define PIN_MOTOR_0_A 33
 #define PIN_MOTOR_0_B 32
-#define PIN_MOTOR_1_A 33
-#define PIN_MOTOR_1_B 32
-#define PIN_MOTOR_2_A 33
-#define PIN_MOTOR_2_B 32
-#define PIN_MOTOR_3_A 33
-#define PIN_MOTOR_3_B 32
+#define PIN_MOTOR_1_A 27
+#define PIN_MOTOR_1_B 26
+#define PIN_MOTOR_2_A 18
+#define PIN_MOTOR_2_B 17
+#define PIN_MOTOR_3_A 16
+#define PIN_MOTOR_3_B 4
 
-#define PIN_LIMIT_0_TOP 4
+#define PIN_LIMIT_0_TOP 15
 #define PIN_LIMIT_0_BOTTOM 14
-#define PIN_LIMIT_1_TOP 4
-#define PIN_LIMIT_1_BOTTOM 14
-#define PIN_LIMIT_2_TOP 4
-#define PIN_LIMIT_2_BOTTOM 14
-#define PIN_LIMIT_3_TOP 4
-#define PIN_LIMIT_3_BOTTOM 14
+#define PIN_LIMIT_1_TOP 13
+#define PIN_LIMIT_1_BOTTOM 12
+#define PIN_LIMIT_2_TOP 21
+#define PIN_LIMIT_2_BOTTOM 19
+#define PIN_LIMIT_3_TOP 22
+#define PIN_LIMIT_3_BOTTOM 25
 
 #define LED_STRIP_NUM_PIXELS (4 * 4) * 4
 
@@ -40,12 +40,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_STRIP_NUM_PIXELS, PIN_LED_STRIP,
 int currentHour;
 int currentMinute;
 
-const int numDigits = 4;
-Digit digits[numDigits] = {
-    Digit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM),
-    Digit(PIN_MOTOR_1_A, PIN_MOTOR_1_B, PIN_LIMIT_1_TOP, PIN_LIMIT_1_BOTTOM),
-    Digit(PIN_MOTOR_2_A, PIN_MOTOR_2_B, PIN_LIMIT_2_TOP, PIN_LIMIT_2_BOTTOM),
-    Digit(PIN_MOTOR_3_A, PIN_MOTOR_3_B, PIN_LIMIT_3_TOP, PIN_LIMIT_3_BOTTOM)};
+Digits digits;
 
 //Digit currentDigits;
 
@@ -97,28 +92,15 @@ void setup()
   strip.begin();
   strip.show();
 
-  // Set calibration values for each digit.
-  // Activate home for each digit.
-  for (int i = 0; i < numDigits; i++)
-  {
-    digits[i].SetTimeBetweenDigits(1000);
-    digits[i].Home();
-  }
+  int temp = 100;
+  digits.AddDigit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM, 1);
+  //digits.AddDigit(PIN_MOTOR_1_A, PIN_MOTOR_1_B, PIN_LIMIT_1_TOP, PIN_LIMIT_1_BOTTOM, 2);
+  //digits.AddDigit(PIN_MOTOR_2_A, PIN_MOTOR_2_B, PIN_LIMIT_2_TOP, PIN_LIMIT_2_BOTTOM, 3);
+  //digits.AddDigit(PIN_MOTOR_3_A, PIN_MOTOR_3_B, PIN_LIMIT_3_TOP, PIN_LIMIT_3_BOTTOM, 4);
 
-  // Wait until all digits are homed.
-  bool allHomedFlag = false;
-  while (allHomedFlag != true)
-  {
-    allHomedFlag = true;
-    for (int i = 0; i < numDigits; i++)
-    {
-      digits[i].Tick();
-      if (digits[i].GetDigitValue() == -1) 
-      {
-        allHomedFlag = false;
-      }
-    }
-  }
+  digits.Begin();
+
+  digits.Home();
 
   /*
   WiFi.begin(ssid, password);
@@ -156,10 +138,7 @@ void loop()
   //digitalWrite(PIN_MOTOR_4_A, digitalRead(PIN_LIMIT_4_TOP));
   //digitalWrite(PIN_MOTOR_4_B, digitalRead(PIN_LIMIT_4_BOTTOM));
 
-  for (int i = 0; i < numDigits; i++)
-  {
-    digits[i].Tick();
-  }
+  digits.Tick();
 
   //char buf[50];
   //sprintf(buf, "%u %u", digitalRead(PIN_LIMIT_4_TOP), digitalRead(PIN_LIMIT_4_BOTTOM));
