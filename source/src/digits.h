@@ -1,9 +1,3 @@
-
-// Flaws:
-// Class should not depend on the Tick() method as it's prone to delays causing
-// position control errors.
-// Instead a timer should be implemented for precise control and run away failure prevention.
-
 // Limit switches are active HIGH, default state is LOW.
 
 #include <vector>
@@ -16,8 +10,8 @@ public:
     void AddDigit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom, int time);
     bool Begin();
     void SetTimeBetweenDigits(int value);
-    void SetDigitValue(int digitIndex, int value);
-    int GetDigitValue();
+    bool SetTargetDigit(int digitIndex, int value);
+    bool IsInMotion();
     void Home();
     void Tick();
 
@@ -51,14 +45,13 @@ private:
         unsigned char pinLimitTop;
         unsigned char pinLimitBottom;
 
-        
-
         unsigned long motionStartMillis;
-        unsigned long timeFromHomeToZero = 1000;
-        unsigned long timeForNextDigitMs = 0;
+        int durationFromHomeToZeroMs = 1000; 
+        int durationBetweenDigits = 0;
+        int durationForNextDigitMs = 0;
 
-        Digit(unsigned char a, unsigned char b, unsigned char limT, unsigned char limB, int t)
-            : pinA(a), pinB(b), pinLimitTop(limT), pinLimitBottom(limB), timeForNextDigitMs(t) {}
+        Digit(unsigned char a, unsigned char b, unsigned char limT, unsigned char limB, int d)
+            : pinA(a), pinB(b), pinLimitTop(limT), pinLimitBottom(limB), durationForNextDigitMs(d) {}
     };
 
     std::vector<Digit> digits;

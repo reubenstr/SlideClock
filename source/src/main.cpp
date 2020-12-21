@@ -1,16 +1,12 @@
 // WORK IN PROGRESS.
 
-#include <Arduino.h>
+// Time: Uses ESP32 built in NTP client to fetch current date and time.
+
+#include <Arduino.h> // ESP32 built-in
 #include <Adafruit_NeoPixel.h>
-
-#include <WiFi.h>
-#include "Digits.h"
-
-const char *ssid = "RedSky";
-const char *password = "happyredcat";
-const char *host = "data.sparkfun.com";
-const char *streamId = "....................";
-const char *privateKey = "....................";
+#include <WiFi.h>   // ESP32 built-in
+#include "time.h"   // ESP32 built-in
+#include "Digits.h" // Local
 
 #define PIN_LED_BUILTIN 2
 #define PIN_LED_STRIP 5
@@ -39,10 +35,18 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(LED_STRIP_NUM_PIXELS, PIN_LED_STRIP,
 
 int currentHour;
 int currentMinute;
+int currentSecond;
 
 Digits digits;
 
-//Digit currentDigits;
+// Wifi and NTP
+const char *ssid = "RedSky";
+const char *password = "happyredcat";
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = -18000; // EST
+const int daylightOffset_sec = 3600;
+
+/*****************************************************************************/
 
 // Pack color data into 32 bit unsigned int (copied from Neopixel library).
 uint32_t Color(uint8_t r, uint8_t g, uint8_t b)
@@ -68,6 +72,24 @@ uint32_t Wheel(byte WheelPos)
   return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
+void UpdateDigitBackgroundLEDs()
+{
+  static long startMillis;
+  static byte wheelPos;
+
+  if (millis() - startMillis > 10)
+  {
+    startMillis = millis();
+
+    wheelPos++;
+    for (int i = 0; i < strip.numPixels(); i++)
+    {
+      strip.setPixelColor(i, Wheel(wheelPos + i * (255 / strip.numPixels())));
+    }
+    strip.show();
+  }
+}
+
 void BlinkOnboardLED()
 {
   static unsigned long builtinLedMillis;
@@ -82,125 +104,101 @@ void BlinkOnboardLED()
   }
 }
 
+void UpdateColonLEDs(bool blinkFlag, bool wifiConnectedFlag)
+{
+}
+
+// Fetch time uses ESP32 built-in NTP client.
+bool GetTime()
+{
+  static unsigned long startMillis;
+  struct tm timeinfo;
+
+  int oldSecond = currentSecond;
+
+  //if (millis() - startMillis > 50)
+  //startMillis = millis();
+
+  if (getLocalTime(&timeinfo))
+  {
+    currentHour = timeinfo.tm_hour;
+    currentMinute = timeinfo.tm_min;
+    currentSecond = timeinfo.tm_sec;
+  }
+  else
+  {
+    return false;
+  }
+
+  bool newSecondflag = oldSecond != currentSecond;
+
+  if (newSecondflag)
+  {
+    char buf[20];
+    sprintf(buf, "%02u:%02u:%02u", currentHour, currentMinute, currentSecond);
+    Serial.println(buf);
+  }
+
+  return newSecondflag;
+}
+
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("SlideClock startup...");
+  Serial.println("SlideClock.");
 
   pinMode(PIN_LED_BUILTIN, OUTPUT);
 
   strip.begin();
+  strip.setBrightness(16);
   strip.show();
 
-  int temp = 100;
-  digits.AddDigit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM, 1);
+  digits.AddDigit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM, 500);
   //digits.AddDigit(PIN_MOTOR_1_A, PIN_MOTOR_1_B, PIN_LIMIT_1_TOP, PIN_LIMIT_1_BOTTOM, 2);
   //digits.AddDigit(PIN_MOTOR_2_A, PIN_MOTOR_2_B, PIN_LIMIT_2_TOP, PIN_LIMIT_2_BOTTOM, 3);
   //digits.AddDigit(PIN_MOTOR_3_A, PIN_MOTOR_3_B, PIN_LIMIT_3_TOP, PIN_LIMIT_3_BOTTOM, 4);
 
   digits.Begin();
+  //digits.Home();
 
-  digits.Home();
-
-  /*
+  /* */
   WiFi.begin(ssid, password);
 
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+  }
 
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-    */
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 
 void loop()
 {
-
   BlinkOnboardLED();
 
-  strip.setBrightness(127);
-
-  static byte wheelPos;
-
-  wheelPos++;
-  for (int i = 0; i < strip.numPixels(); i++)
-  {
-    strip.setPixelColor(i, Wheel(wheelPos + i * (255 / strip.numPixels())));
-  }
-  strip.show();
-
-  delay(10);
-
-  //digitalWrite(PIN_MOTOR_4_A, digitalRead(PIN_LIMIT_4_TOP));
-  //digitalWrite(PIN_MOTOR_4_B, digitalRead(PIN_LIMIT_4_BOTTOM));
+  UpdateDigitBackgroundLEDs();
 
   digits.Tick();
 
-  //char buf[50];
-  //sprintf(buf, "%u %u", digitalRead(PIN_LIMIT_4_TOP), digitalRead(PIN_LIMIT_4_BOTTOM));
-  //Serial.println(buf);
-  //delay(250);
+  bool wifiConnectedFlag = (WiFi.status() == WL_CONNECTED);
+  
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    // attempt reconnect
+  }
 
-  /***********************************************************************/
-  /***********************************************************************/
-  /***********************************************************************/
-  /***********************************************************************/
-  /*
+  if (!digits.IsInMotion())
+  {
+    
+  }
 
+  bool blinkFlag = GetTime();
 
-    delay(5000);
-   static int value = 0; 
-   ++value;
-
-
-
-Serial.print("connecting to ");
-    Serial.println(host);
-
-    // Use WiFiClient class to create TCP connections
-    WiFiClient client;
-    const int httpPort = 80;
-    if (!client.connect(host, httpPort)) {
-        Serial.println("connection failed");
-        return;
-    }
-
-    // We now create a URI for the request
-    String url = "/input/";
-    url += streamId;
-    url += "?private_key=";
-    url += privateKey;
-    url += "&value=";
-    url += value;
-
-    Serial.print("Requesting URL: ");
-    Serial.println(url);
-
-    // This will send the request to the server
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-    unsigned long timeout = millis();
-    while (client.available() == 0) {
-        if (millis() - timeout > 5000) {
-            Serial.println(">>> Client Timeout !");
-            client.stop();
-            return;
-        }
-    }
-
-    // Read all the lines of the reply from server and print them to Serial
-    while(client.available()) {
-        String line = client.readStringUntil('\r');
-        Serial.print(line);
-    }
-
-    Serial.println();
-    Serial.println("closing connection");
-
-  */
+  UpdateColonLEDs(blinkFlag, wifiConnectedFlag);
 }

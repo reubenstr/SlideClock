@@ -2,16 +2,14 @@
 #include "Digits.h"
 #include <Arduino.h>
 
-// Digit::Digit() {}
-
 Digits::Digits()
 {
 }
 
 // Add digit.
-void Digits::AddDigit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom, int time)
+void Digits::AddDigit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom, int duration)
 {
-    digits.push_back(Digit(pinA, pinB, pinTop, pinBottom, time));
+    digits.push_back(Digit(pinA, pinB, pinTop, pinBottom, duration));
 }
 
 // Required call prior to operation setup ports.
@@ -34,25 +32,52 @@ void Digits::SetTimeBetweenDigits(int value)
     // timeBetweenDigits = value;
 }
 
-void Digits::SetTargetDigit(int digitIndex, int target)
+// Return false if unable to set target digit.
+// Only allowed to set a target digit if not in motion.
+bool Digits::SetTargetDigit(int digitIndex, int target)
 {
-
-    if (digitIndex > digits.size - 1)
-        return;
+    if (digitIndex > digits.size() - 1)
+        return false;
 
     if (target < 0 || target > 9)
-        return;
+        return false;
 
-    if (target != digits[digitIndex].currentDigit)
+    if (digits[digitIndex].state != State::Resting)
+        return false;
+
+    if (target == digits[digitIndex].currentDigit)
+        return false;
+
+    if (target > digits[digitIndex].currentDigit)
     {
         digits[digitIndex].motionStartMillis = millis();
+        digits[digitIndex].durationForNextDigitMs = digits[digitIndex].durationForNextDigitMs * (target - digits[digitIndex].currentDigit);
         digits[digitIndex].targetDigit = target;
+        digits[digitIndex].currentDigit = target;
+        digits[digitIndex].state = State::Moving;
     }
+    else
+    {
+        digits[digitIndex].state = State::Homing;
+    }
+
+    return true;
 }
 
-int Digits::GetDigitValue()
+
+bool Digits::IsInMotion()
 {
-    //return currentDigit;
+    bool motionFlag = false;
+
+    for(Digit d : digits)
+    {
+        if (d.state != State::Resting)
+        {
+            motionFlag = true;
+        }
+    }
+
+    return motionFlag;
 }
 
 // Home all digits (run motor until limit switch activated).
@@ -61,31 +86,9 @@ void Digits::Home()
 {
     for (Digit &d : digits)
     {
+        d.targetDigit = 0;
+        d.currentDigit = 0;
         d.state = State::Homing;
-    }
-}
-
-void Digits::SetMotion(Digit d, Motion motion)
-{
-    if (motion == Motion::Up)
-    {
-        digitalWrite(d.pinA, HIGH);
-        digitalWrite(d.pinB, LOW);
-    }
-    else if (motion == Motion::Down)
-    {
-        digitalWrite(d.pinA, LOW);
-        digitalWrite(d.pinB, HIGH);
-    }
-    else if (motion == Motion::Coast)
-    {
-        digitalWrite(d.pinA, LOW);
-        digitalWrite(d.pinB, LOW);
-    }
-    else if (motion == Motion::Brake)
-    {
-        digitalWrite(d.pinA, HIGH);
-        digitalWrite(d.pinB, HIGH);
     }
 }
 
@@ -111,9 +114,19 @@ void Digits::Tick()
         {
             SetMotion(d, Motion::Up);
 
-            if (millis() - d.motionStartMillis >= d.timeFromHomeToZero)
+            if (millis() - d.motionStartMillis >= d.durationFromHomeToZeroMs)
             {
-                d.state = State::Resting;
+                if (d.targetDigit > d.currentDigit)
+                {
+                    d.motionStartMillis = millis();
+                    d.durationForNextDigitMs = d.durationForNextDigitMs * (d.targetDigit - d.currentDigit);
+                    d.currentDigit = d.targetDigit;
+                    d.state = State::Moving;
+                }
+                else
+                {
+                    d.state = State::Resting;
+                }
             }
         }
         else if (d.state == State::Resting)
@@ -122,6 +135,36 @@ void Digits::Tick()
         }
         else if (d.state == State::Moving)
         {
+            SetMotion(d, Motion::Down);
+
+            if (millis() - d.motionStartMillis >= d.durationForNextDigitMs)
+            {
+                d.state = State::Resting;
+            }
         }
+    }   
+}
+
+void Digits::SetMotion(Digit d, Motion motion)
+{
+    if (motion == Motion::Up)
+    {
+        digitalWrite(d.pinA, HIGH);
+        digitalWrite(d.pinB, LOW);
     }
+    else if (motion == Motion::Down)
+    {
+        digitalWrite(d.pinA, LOW);
+        digitalWrite(d.pinB, HIGH);
+    }
+    else if (motion == Motion::Coast)
+    {
+        digitalWrite(d.pinA, LOW);
+        digitalWrite(d.pinB, LOW);
+    }
+    else if (motion == Motion::Brake)
+    {
+        digitalWrite(d.pinA, HIGH);
+        digitalWrite(d.pinB, HIGH);
+    }   
 }
