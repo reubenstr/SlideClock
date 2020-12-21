@@ -4,9 +4,12 @@
 
 #include <Arduino.h> // ESP32 built-in
 #include <Adafruit_NeoPixel.h>
-#include <WiFi.h>   // ESP32 built-in
-#include "time.h"   // ESP32 built-in
-#include "Digits.h" // Local
+#include "NeoPixelHelper.h" // Local
+#include <WiFi.h>           // ESP32 built-in
+#include "time.h"           // ESP32 built-in
+#include "Digits.h"         // Local
+#include "WifiHelper.h"     // Local
+#include "msTimer.h"        // Local
 
 #define PIN_LED_BUILTIN 2
 #define PIN_LED_STRIP 5
@@ -48,39 +51,13 @@ const int daylightOffset_sec = 3600;
 
 /*****************************************************************************/
 
-// Pack color data into 32 bit unsigned int (copied from Neopixel library).
-uint32_t Color(uint8_t r, uint8_t g, uint8_t b)
-{
-  return (uint32_t)((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-}
-
-// Input a value 0 to 255 to get a color value (of a pseudo-rainbow).
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos)
-{
-  WheelPos = 255 - WheelPos;
-  if (WheelPos < 85)
-  {
-    return Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if (WheelPos < 170)
-  {
-    WheelPos -= 85;
-    return Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
-
 void UpdateDigitBackgroundLEDs()
 {
-  static long startMillis;
+  static msTimer timer(20);
   static byte wheelPos;
 
-  if (millis() - startMillis > 10)
+  if (timer.elapsed())
   {
-    startMillis = millis();
-
     wheelPos++;
     for (int i = 0; i < strip.numPixels(); i++)
     {
@@ -92,32 +69,26 @@ void UpdateDigitBackgroundLEDs()
 
 void BlinkOnboardLED()
 {
-  static unsigned long builtinLedMillis;
+  static msTimer timer;
   static bool toggle;
-  int delay = toggle ? 100 : 900;
 
-  if ((builtinLedMillis + delay) < millis())
+  if (timer.elapsed())
   {
-    builtinLedMillis = millis();
     toggle = !toggle;
-    digitalWrite(PIN_LED_BUILTIN, toggle);
-  }
+    timer.setDelay(toggle ? 100 : 900);
+    digitalWrite(PIN_LED_BUILTIN, toggle);    
+  }  
 }
 
 void UpdateColonLEDs(bool blinkFlag, bool wifiConnectedFlag)
 {
 }
 
-// Fetch time uses ESP32 built-in NTP client.
+// Fetch time uses ESP32 built-in RTC and NTP client.
 bool GetTime()
 {
-  static unsigned long startMillis;
   struct tm timeinfo;
-
   int oldSecond = currentSecond;
-
-  //if (millis() - startMillis > 50)
-  //startMillis = millis();
 
   if (getLocalTime(&timeinfo))
   {
@@ -127,6 +98,7 @@ bool GetTime()
   }
   else
   {
+    // Error.
     return false;
   }
 
@@ -159,23 +131,16 @@ void setup()
   //digits.AddDigit(PIN_MOTOR_3_A, PIN_MOTOR_3_B, PIN_LIMIT_3_TOP, PIN_LIMIT_3_BOTTOM, 4);
 
   digits.Begin();
-  //digits.Home();
+  digits.Home();
 
-  /* */
-  WiFi.begin(ssid, password);
+  /* 
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  AddWifiCredential("RedSky", "happyredcat");
+  AddWifiCredential("Hermes", "Mlx5ykch");
+  ConnectWifi();
 
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  */
 }
 
 void loop()
@@ -187,18 +152,12 @@ void loop()
   digits.Tick();
 
   bool wifiConnectedFlag = (WiFi.status() == WL_CONNECTED);
-  
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    // attempt reconnect
-  }
 
   if (!digits.IsInMotion())
   {
-    
   }
 
-  bool blinkFlag = GetTime();
+  //bool blinkFlag = GetTime();
 
-  UpdateColonLEDs(blinkFlag, wifiConnectedFlag);
+  //UpdateColonLEDs(blinkFlag, wifiConnectedFlag);
 }

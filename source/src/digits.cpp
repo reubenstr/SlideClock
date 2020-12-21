@@ -102,9 +102,9 @@ void Digits::Tick()
         }
         else if (d.state == State::Homing)
         {
-            SetMotion(d, Motion::Down);
+            SetMotion(d, Motion::Up);
 
-            if (digitalRead(d.pinLimitBottom) == HIGH)
+            if (digitalRead(d.pinLimitTop) == HIGH)
             {
                 d.state = State::Zeroing;
                 d.motionStartMillis = millis();
@@ -112,7 +112,7 @@ void Digits::Tick()
         }
         else if (d.state == State::Zeroing)
         {
-            SetMotion(d, Motion::Up);
+            SetMotion(d, Motion::Down);
 
             if (millis() - d.motionStartMillis >= d.durationFromHomeToZeroMs)
             {
@@ -135,7 +135,7 @@ void Digits::Tick()
         }
         else if (d.state == State::Moving)
         {
-            SetMotion(d, Motion::Down);
+            SetMotion(d, Motion::Up);
 
             if (millis() - d.motionStartMillis >= d.durationForNextDigitMs)
             {
