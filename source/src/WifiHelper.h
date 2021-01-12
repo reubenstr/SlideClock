@@ -1,4 +1,4 @@
-// Helper methods to abstract connecting to WiFi on a ESP32.
+// Helper methods abstracting connecting to WiFi on a ESP32.
 
 #include "Arduino.h"
 #include <WiFi.h> // ESP32 built-in

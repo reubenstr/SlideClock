@@ -1,8 +1,8 @@
 // msTimer
 // 
-// In loop, non-blocking, timer.
+// In loop (non-blocking) timer.
 //
-// Version 1.1
+// Current Version: 1.1
 // 
 // Version 1.0 : Initial release.
 // Version 1.1 : Bug fix t prevent rollover error.

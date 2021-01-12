@@ -125,13 +125,21 @@ void setup()
   strip.setBrightness(16);
   strip.show();
 
-  digits.AddDigit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM, 500);
+  digits.AddDigit(PIN_MOTOR_0_A, PIN_MOTOR_0_B, PIN_LIMIT_0_TOP, PIN_LIMIT_0_BOTTOM, 2600);
   //digits.AddDigit(PIN_MOTOR_1_A, PIN_MOTOR_1_B, PIN_LIMIT_1_TOP, PIN_LIMIT_1_BOTTOM, 2);
   //digits.AddDigit(PIN_MOTOR_2_A, PIN_MOTOR_2_B, PIN_LIMIT_2_TOP, PIN_LIMIT_2_BOTTOM, 3);
   //digits.AddDigit(PIN_MOTOR_3_A, PIN_MOTOR_3_B, PIN_LIMIT_3_TOP, PIN_LIMIT_3_BOTTOM, 4);
 
-  digits.Begin();
   digits.Home();
+
+  while (!digits.IsHomed())
+  {
+    // Wait for digits to home.
+    digits.Tick();
+  }
+
+  
+
 
   /* 
 
@@ -153,8 +161,24 @@ void loop()
 
   bool wifiConnectedFlag = (WiFi.status() == WL_CONNECTED);
 
+  static int count = 0;
+  static unsigned long start = millis();
+
+  if (millis() - start > 5000)
+  {
+    start = millis();
+    count++;
+
+    digits.SetTargetValue(0, count);
+  }
+
+
   if (!digits.IsInMotion())
   {
+
+
+
+
   }
 
   //bool blinkFlag = GetTime();

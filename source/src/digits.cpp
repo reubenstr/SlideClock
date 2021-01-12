@@ -1,40 +1,40 @@
 
+// Controls a DC motor driver with IN1/IN2 style pins.
+
+
 #include "Digits.h"
 #include <Arduino.h>
 
+
+
 Digits::Digits()
 {
+    // Default constructor.
 }
 
 // Add digit.
 void Digits::AddDigit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom, int duration)
 {
     digits.push_back(Digit(pinA, pinB, pinTop, pinBottom, duration));
-}
 
-// Required call prior to operation setup ports.
-bool Digits::Begin()
-{
-    for (Digit d : digits)
-    {
-        pinMode(d.pinA, OUTPUT);
-        pinMode(d.pinB, OUTPUT);
-        pinMode(d.pinLimitTop, INPUT_PULLUP);
-        pinMode(d.pinLimitBottom, INPUT_PULLUP);
-    }
-
-    return true;
+    pinMode(pinA, OUTPUT);
+    pinMode(pinB, OUTPUT);
+    pinMode(pinTop, INPUT_PULLUP);
+    pinMode(pinBottom, INPUT_PULLUP);
 }
 
 // Time in milliseconds of motor actuation between digits.
-void Digits::SetTimeBetweenDigits(int value)
+void Digits::SetDurationBetweenDigits(int digitIndex, int value)
 {
-    // timeBetweenDigits = value;
+    if (digitIndex > digits.size() - 1)
+        return;
+
+    digits[digitIndex].durationBetweenDigits = value;
 }
 
 // Return false if unable to set target digit.
 // Only allowed to set a target digit if not in motion.
-bool Digits::SetTargetDigit(int digitIndex, int target)
+bool Digits::SetTargetValue(int digitIndex, int target)
 {
     if (digitIndex > digits.size() - 1)
         return false;
@@ -55,6 +55,7 @@ bool Digits::SetTargetDigit(int digitIndex, int target)
         digits[digitIndex].targetDigit = target;
         digits[digitIndex].currentDigit = target;
         digits[digitIndex].state = State::Moving;
+        Serial.printf("Value set for digit %u with value %u for duration %ums\n", digitIndex, target, digits[digitIndex].durationForNextDigitMs);
     }
     else
     {
@@ -64,12 +65,12 @@ bool Digits::SetTargetDigit(int digitIndex, int target)
     return true;
 }
 
-
+// Return true of any digit motor is running.
 bool Digits::IsInMotion()
 {
     bool motionFlag = false;
 
-    for(Digit d : digits)
+    for (Digit d : digits)
     {
         if (d.state != State::Resting)
         {
@@ -92,6 +93,7 @@ void Digits::Home()
     }
 }
 
+
 // Updates digit movement, must be called continuously.
 void Digits::Tick()
 {
@@ -102,14 +104,15 @@ void Digits::Tick()
         }
         else if (d.state == State::Homing)
         {
-            SetMotion(d, Motion::Up);
+            SetMotion(d, Motion::Down);
 
             if (digitalRead(d.pinLimitTop) == HIGH)
             {
-                d.state = State::Zeroing;
+                d.state = State::Resting;
                 d.motionStartMillis = millis();
             }
         }
+        /*
         else if (d.state == State::Zeroing)
         {
             SetMotion(d, Motion::Down);
@@ -129,6 +132,7 @@ void Digits::Tick()
                 }
             }
         }
+        */
         else if (d.state == State::Resting)
         {
             SetMotion(d, Motion::Brake);
@@ -142,20 +146,36 @@ void Digits::Tick()
                 d.state = State::Resting;
             }
         }
-    }   
+    }
 }
 
 void Digits::SetMotion(Digit d, Motion motion)
 {
     if (motion == Motion::Up)
     {
-        digitalWrite(d.pinA, HIGH);
-        digitalWrite(d.pinB, LOW);
+        if (d.inverseMotorDirection)
+        {
+            digitalWrite(d.pinA, LOW);
+            digitalWrite(d.pinB, HIGH);
+        }
+        else
+        {
+            digitalWrite(d.pinA, HIGH);
+            digitalWrite(d.pinB, LOW);
+        }
     }
     else if (motion == Motion::Down)
     {
-        digitalWrite(d.pinA, LOW);
-        digitalWrite(d.pinB, HIGH);
+        if (d.inverseMotorDirection)
+        {
+            digitalWrite(d.pinA, HIGH);
+            digitalWrite(d.pinB, LOW);
+        }
+        else
+        {
+            digitalWrite(d.pinA, LOW);
+            digitalWrite(d.pinB, HIGH);
+        }
     }
     else if (motion == Motion::Coast)
     {
@@ -166,5 +186,5 @@ void Digits::SetMotion(Digit d, Motion motion)
     {
         digitalWrite(d.pinA, HIGH);
         digitalWrite(d.pinB, HIGH);
-    }   
+    }
 }

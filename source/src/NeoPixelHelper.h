@@ -1,3 +1,5 @@
+// Helper methods abstracting common NeoPixel functionality.
+
 #include <Adafruit_NeoPixel.h>
 
 // Pack color data into 32 bit unsigned int (copied from Neopixel library).

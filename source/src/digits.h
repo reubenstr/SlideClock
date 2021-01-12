@@ -8,9 +8,8 @@ class Digits
 public:
     Digits();
     void AddDigit(unsigned char pinA, unsigned char pinB, unsigned char pinTop, unsigned char pinBottom, int time);
-    bool Begin();
-    void SetTimeBetweenDigits(int value);
-    bool SetTargetDigit(int digitIndex, int value);
+    void SetDurationBetweenDigits(int digitIndex, int value);
+    bool SetTargetValue(int digitIndex, int value);
     bool IsInMotion();
     void Home();
     void Tick();
@@ -49,6 +48,8 @@ private:
         int durationFromHomeToZeroMs = 1000; 
         int durationBetweenDigits = 0;
         int durationForNextDigitMs = 0;
+
+        bool inverseMotorDirection = true;
 
         Digit(unsigned char a, unsigned char b, unsigned char limT, unsigned char limB, int d)
             : pinA(a), pinB(b), pinLimitTop(limT), pinLimitBottom(limB), durationForNextDigitMs(d) {}
