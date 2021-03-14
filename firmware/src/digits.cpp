@@ -55,10 +55,12 @@ bool Digits::SetTargetValue(int digitIndex, int target)
         digits[digitIndex].targetDigit = target;
         digits[digitIndex].currentDigit = target;
         digits[digitIndex].state = State::Moving;
-        Serial.printf("Value set for digit %u with value %u for duration %ums\n", digitIndex, target, digits[digitIndex].durationForNextDigitMs);
+        Serial.printf("Value set for digit %u with value %u for duration %ums.\n", digitIndex, target, digits[digitIndex].durationForNextDigitMs);
     }
-    else
+    else if (target == 0)
     {
+        digits[digitIndex].targetDigit = target;
+        digits[digitIndex].currentDigit = target;
         digits[digitIndex].state = State::Homing;
     }
 

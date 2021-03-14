@@ -12,10 +12,11 @@ public:
     bool SetTargetValue(int digitIndex, int value);
     bool IsInMotion();
     void Home();
+    bool IsHomed();
     void Tick();
 
 private:
-    enum State
+    enum class State
     {
         NotHomed,
         Homing,

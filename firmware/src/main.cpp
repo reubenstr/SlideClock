@@ -76,8 +76,8 @@ void BlinkOnboardLED()
   {
     toggle = !toggle;
     timer.setDelay(toggle ? 100 : 900);
-    digitalWrite(PIN_LED_BUILTIN, toggle);    
-  }  
+    digitalWrite(PIN_LED_BUILTIN, toggle);
+  }
 }
 
 void UpdateColonLEDs(bool blinkFlag, bool wifiConnectedFlag)
@@ -117,7 +117,7 @@ bool GetTime()
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("SlideClock.");
+  Serial.println("SlideClock starting up.");
 
   pinMode(PIN_LED_BUILTIN, OUTPUT);
 
@@ -132,14 +132,13 @@ void setup()
 
   digits.Home();
 
-  while (!digits.IsHomed())
+  Serial.println("Homing digits...");
+  while (digits.IsInMotion())
   {
     // Wait for digits to home.
     digits.Tick();
   }
-
-  
-
+  Serial.println("Digits homed.");
 
   /* 
 
@@ -169,16 +168,14 @@ void loop()
     start = millis();
     count++;
 
+    if (count == 10)
+      count = 0;
+
     digits.SetTargetValue(0, count);
   }
 
-
   if (!digits.IsInMotion())
   {
-
-
-
-
   }
 
   //bool blinkFlag = GetTime();
